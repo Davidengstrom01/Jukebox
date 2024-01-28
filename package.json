@@ -11,7 +11,6 @@
   "license": "ISC",
   "dependencies": {
     "@discordjs/builders": "github:discordjs/builders",
-    "@discordjs/voice": "github:discordjs/voice",
     "discord-api-types": "^0.37.67",
     "discord-player": "^6.6.7",
     "discord.js": "^14.14.1",
