@@ -1,7 +1,12 @@
 require('dotenv').config();
 
-const { Client, IntentsBitField, EmbedBuilder } = require('discord.js');
-const { joinVoiceChannel } = require('@discordjs/voice');
+const {REST} = require('@discordjs/rest');
+const { Routes } = require('discord-api-types/v9');
+const { Client, IntentsBitField, EmbedBuilder, Collection } = require('discord.js');
+const { Player } = require('@discord-player');
+
+const fs = require('node:fs');
+const path = require('node:path');
 
 const client = new Client({
     intents:[
@@ -15,37 +20,55 @@ const client = new Client({
 
 client.on('ready', (c) => {
     console.log("DJ Bad has entered the building")
+}); 
+
+//Load Commands
+const commands = [];
+client.commands = new Collection();
+
+const commandsPath = path.join(__dirname, 'commands');
+const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+
+for(const file of commandFiles){
+    const filePath = path.join(commandsPath, file);
+    const command = require(filePath);
+
+    client.commands.set(command.data.name, command);
+    commands.push(command);
+}
+
+//Creating Player
+client.Player =  new Player(client, {
+    ytdlOptions: {
+        quality: 'highestaudio',
+        highWaterMark: 1 << 25
+    }
 });
 
+client.on('ready', () => {
+    const guild_ids = client.guilds.cache.map(guild => guild.id);
+
+    const rest = new REST({version: '9'}).setToken(process.env.TOKEN);
+    for(const guildId of guild_ids){
+        rest.put(Routes.applicationGuildCommands(process.env.CLIENT_ID, guildId), {
+            body: commands
+        }).then(() => console.log(`Added commands to ${guildId}`)).catch(console.error);
+    }
+} );
+
+//handle commands
 client.on('interactionCreate', async interaction => {
     if(!interaction.isChatInputCommand()) return;
 
-    if(interaction.commandName === 'play_music'){
-               
-        if (interaction.member.voice.channel) {
-            const channel = interaction.member.voice.channel;
-            try {
-                // Join the voice channel
-                const connection = joinVoiceChannel({
-                    channelId: channel.id,
-                    guildId: channel.guild.id,
-                    adapterCreator: channel.guild.voiceAdapterCreator,
-                });
-                await interaction.reply('Joined your voice channel!');
-            } catch (error) {
-                console.error(error);
-                await interaction.reply('Failed to join your voice channel.');
-            }
-        } else {
-            await interaction.reply('You need to be in a voice channel!');
-        }
+    const command = client.commands.get(interaction.commandName);
+    if(!command) return;
 
-        const platform = interaction.options.getString('plattform');
-        
-        const embed = new EmbedBuilder()
-        .setTitle('DJ_Bad is playing')
-        .setDescription('platform')
-        .setColor('Random');
+    try{
+        await command.execute({client, interaction});
+    }
+    catch(error){
+        console.error(error);
+        await interaction.reply('An error occurred while executing that command.');
     }
 });
 

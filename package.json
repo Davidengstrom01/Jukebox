@@ -10,7 +10,10 @@
   "author": "David E",
   "license": "ISC",
   "dependencies": {
-    "@discordjs/voice": "^0.16.1",
+    "@discordjs/builders": "github:discordjs/builders",
+    "@discordjs/voice": "github:discordjs/voice",
+    "discord-api-types": "^0.37.67",
+    "discord-player": "^6.6.7",
     "discord.js": "14.14.1",
     "dotenv": "^16.4.1"
   }
